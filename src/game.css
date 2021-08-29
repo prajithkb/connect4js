@@ -1,3 +1,37 @@
+.row {
+	margin: 60px auto 10px auto;
+	width: 100%;
+}
+
+.row div {
+	padding:0;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-evenly;
+    align-items: flex-end;
+    align-content: center;
+  }
+.row div ul {
+	padding:0;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-evenly;
+    align-items: flex-end;
+    align-content: center;
+  }
+.row div ul li  {
+	margin:auto 5px auto 5px;
+	font-size:20px;
+	font-weight:normal;
+	list-style:none;
+	display:inline-block;
+	box-sizing:border-box;
+}
+
+/** Dialog **/
+
+.no-close .ui-dialog-titlebar-close {display: none }
+
 #gameBoard {
     margin: 60px auto 10px auto;
     cursor: pointer;
@@ -32,7 +66,7 @@
 	visibility: visible;
 }
 
-#gameBoard .ball {
+#gameBoard .ball, .ball {
 	width: 36px;
 	height: 36px;
 	margin: 4px;
@@ -52,12 +86,12 @@
     top: -2px;
     position: relative;
 }
-#gameBoard .player0 {
+#gameBoard .player0, .player0 {
 	background-color: #ff0000;
 	border-color: #ff0000;
 }
 
-#gameBoard .player1 {
+#gameBoard .player1, .player1 {
 	background-color: #fff000;
 	border-color: #fff000;
 }
@@ -74,12 +108,6 @@
 	position: relative;
     
 }
-/*#gameBoard .column:last-child > div{
-    border-right:2px #000000 solid;
-    background-color: #175dde;
-}*/
-
-    
 
 div.loading .modalContainer {
 	display: block;

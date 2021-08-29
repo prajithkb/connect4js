@@ -9,73 +9,110 @@
 </head>
 
 <body>
-    <div id="content">
-        <header>
-        </header>
+
+    <div id="game-start-dialog" title="Welcome to Connect4">
+        <p style="text-align:center">Please pick who plays first</p>
+    </div>
+
+    <div id="game-over-dialog" title="Game Over">
+        <div>
+            <p id="result" style="text-align:center"></p>
+            <p style="text-align:center">
+                <span><b>Time Taken:</b></span>
+                <span id="time-taken"></span>
+            </p>
+        </div>
+    </div>
+    <div id="game-status" class="row">
+        <div>
+            <ul>
+                <li><b>You:</b></li>
+                <li>
+                    <div id="player0-ball" class="ball player0"></div>
+                </li>
+            </ul>
+            <ul>
+                <li><b>Computer:</b></li>
+                <li>
+                    <div id="player1-ball" class="ball player1"></div>
+                </li>
+            </ul>
+
+        </div>
+        <div>
+            <ul>
+                <li><b>Level:</b></li>
+                <li>X</li>
+            </ul>
+            <ul>
+                <li><b>Status:</b></li>
+                <li id="status">Waiting to start...</li>
+            </ul>
+        </div>
     </div>
     <div id="gameBoard">
         <div class="column" id="col0">
             <div class='ball next-ball player0'></div>
-            <div class="hole" id="0x0"></div>
-            <div class="hole" id="0x1"></div>
-            <div class="hole" id="0x2"></div>
-            <div class="hole" id="0x3"></div>
-            <div class="hole" id="0x4"></div>
-            <div class="hole" id="0x5"></div>
+            <div class="hole" id="col0x0"></div>
+            <div class="hole" id="col0x1"></div>
+            <div class="hole" id="col0x2"></div>
+            <div class="hole" id="col0x3"></div>
+            <div class="hole" id="col0x4"></div>
+            <div class="hole" id="col0x5"></div>
         </div>
         <div class="column" id="col1">
             <div class='ball next-ball player0'></div>
-            <div class="hole" id="1x0"></div>
-            <div class="hole" id="1x1"></div>
-            <div class="hole" id="1x2"></div>
-            <div class="hole" id="1x3"></div>
-            <div class="hole" id="1x4"></div>
-            <div class="hole" id="1x5"></div>
+            <div class="hole" id="col1x0"></div>
+            <div class="hole" id="col1x1"></div>
+            <div class="hole" id="col1x2"></div>
+            <div class="hole" id="col1x3"></div>
+            <div class="hole" id="col1x4"></div>
+            <div class="hole" id="col1x5"></div>
         </div>
         <div class="column" id="col2">
             <div class='ball next-ball player0'></div>
-            <div class="hole" id="2x0"></div>
-            <div class="hole" id="2x1"></div>
-            <div class="hole" id="2x2"></div>
-            <div class="hole" id="2x3"></div>
-            <div class="hole" id="2x4"></div>
-            <div class="hole" id="2x5"></div>
+            <div class="hole" id="col2x0"></div>
+            <div class="hole" id="col2x1"></div>
+            <div class="hole" id="col2x2"></div>
+            <div class="hole" id="col2x3"></div>
+            <div class="hole" id="col2x4"></div>
+            <div class="hole" id="col2x5"></div>
         </div>
         <div class="column" id="col3">
             <div class='ball next-ball player0'></div>
-            <div class="hole" id="3x0"></div>
-            <div class="hole" id="3x1"></div>
-            <div class="hole" id="3x2"></div>
-            <div class="hole" id="3x3"></div>
-            <div class="hole" id="3x4"></div>
-            <div class="hole" id="3x5"></div>
+            <div class="hole" id="col3x0"></div>
+            <div class="hole" id="col3x1"></div>
+            <div class="hole" id="col3x2"></div>
+            <div class="hole" id="col3x3"></div>
+            <div class="hole" id="col3x4"></div>
+            <div class="hole" id="col3x5"></div>
         </div>
         <div class="column" id="col4">
             <div class='ball next-ball player0'></div>
-            <div class="hole" id="4x0"></div>
-            <div class="hole" id="4x1"></div>
-            <div class="hole" id="4x2"></div>
-            <div class="hole" id="4x3"></div>
-            <div class="hole" id="4x4"></div>
-            <div class="hole" id="4x5"></div>
+            <div class="hole" id="col4x0"></div>
+            <div class="hole" id="col4x1"></div>
+            <div class="hole" id="col4x2"></div>
+            <div class="hole" id="col4x3"></div>
+            <div class="hole" id="col4x4"></div>
+            <div class="hole" id="col4x5"></div>
         </div>
         <div class="column" id="col5">
             <div class='ball next-ball player0'></div>
-            <div class="hole" id="5x0"></div>
-            <div class="hole" id="5x1"></div>
-            <div class="hole" id="5x2"></div>
-            <div class="hole" id="5x3"></div>
-            <div class="hole" id="5x4"></div>
-            <div class="hole" id="5x5"></div>
+            <div class="hole" id="col5x0"></div>
+            <div class="hole" id="col5x1"></div>
+            <div class="hole" id="col5x2"></div>
+            <div class="hole" id="col5x3"></div>
+            <div class="hole" id="col5x4"></div>
+            <div class="hole" id="col5x5"></div>
         </div>
         <div class="column" id="col6">
             <div class='ball next-ball player0'></div>
-            <div class="hole" id="6x0"></div>
-            <div class="hole" id="6x1"></div>
-            <div class="hole" id="6x2"></div>
-            <div class="hole" id="6x3"></div>
-            <div class="hole" id="6x4"></div>
-            <div class="hole" id="6x5"></div>
+            <div class="hole" id="col6x0"></div>
+            <div class="hole" id="col6x1"></div>
+            <div class="hole" id="col6x2"></div>
+            <div class="hole" id="col6x3"></div>
+            <div class="hole" id="col6x4"></div>
+            <div class="hole" id="col6x5"></div>
         </div>
         <script>
             var winCoords = null;
@@ -83,6 +120,19 @@
             var levelId = 12;
             action_is_post = false;
         </script>
+    </div>
+    <div id="moves-and-time" class="row">
+        <div>
+            <ul>
+                <li><b>Number of moves:</b></li>
+                <li id="moves"> X </li>
+            </ul>
+            <ul>
+                <li><b>Elapsed Time:</b></li>
+                <li id="elapsed-time"></li>
+            </ul>
+
+        </div>
     </div>
 </body>
 
