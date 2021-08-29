@@ -25,10 +25,27 @@ export class UI {
 
     startTimer() {
         const startTime = Date.now();
-        setInterval(() => {
+        let connect4 = this.connect4;
+        let timer = setInterval(() => {
             timeTaken = (Date.now() - startTime) / 1000;
             $("#moves-and-time").find("#elapsed-time").text(this.secondsToHms(timeTaken));
+            if (connect4.gameOver) {
+                clearTimeout(timer);
+            }
         }, 1000);
+        var dots = 0;
+        let dots_handle = setInterval(() => {
+            if (dots < 3) {
+                $('#dots').append('<b> .</b>');
+                dots++;
+            } else {
+                $('#dots').html('');
+                dots = 0;
+            }
+            if (connect4.gameOver) {
+                clearTimeout(dots_handle);
+            }
+        }, 333)
     }
 
     secondsToHms(d: number): string {
@@ -121,8 +138,9 @@ export class UI {
                         break;
                     }
                 }
-                console.log($(v).find("#result").text(message));
-                console.log($(v).find("#time-taken").text(engine.secondsToHms(timeTaken)));
+                $(v).find("#result").text(message);
+                $(v).find("#time-taken").text(engine.secondsToHms(timeTaken));
+                $(v).find("#number-of-moves").text(engine.connect4.numberOfPieces);
             },
             modal: true,
             show: { effect: "bounce", duration: 1000 },
@@ -199,7 +217,7 @@ export class UI {
                     engine.nextMove(PlayerTypes.Second);
                 } else {
                     console.log("waiting for your move");
-                    $("#game-status").find("#status").text("Waiting for your move...");
+                    $("#game-status").find("#status").text("Waiting for your move");
                     $("#gameBoard #col" + col + " .next-ball").removeClass("player" + player);
                 }
                 actionInProgress = 0;
@@ -213,7 +231,7 @@ export class UI {
     /// Makes the next move
     nextMove(player: Player) {
         if (!this.connect4.gameOver && player === PlayerTypes.Second) {
-            $("#game-status").find("#status").text("Computer making a move...");
+            $("#game-status").find("#status").text("Computer making a move");
             $("#gameBoard").addClass("loading");
             let weight = 0;
             switch (this.inputs.levelId) {

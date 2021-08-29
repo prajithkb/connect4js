@@ -27,6 +27,15 @@
 	display:inline-block;
 	box-sizing:border-box;
 }
+.row div ul .status {
+	margin:auto 5px auto 5px;
+	font-size:20px;
+	font-weight:normal;
+	list-style:none;
+	width: 250px;
+	display:inline-block;
+	box-sizing:border-box;
+}
 
 /** Dialog **/
 

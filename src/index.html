@@ -14,12 +14,16 @@
         <p style="text-align:center">Please pick who plays first</p>
     </div>
 
-    <div id="game-over-dialog" title="Game Over">
-        <div>
+    <div id="game-over-dialog" title="Game Over" style="display: none;">
+        <div style="text-align:center">
             <p id="result" style="text-align:center"></p>
             <p style="text-align:center">
                 <span><b>Time Taken:</b></span>
                 <span id="time-taken"></span>
+            </p>
+            <p style="text-align:center">
+                <span><b>Number of moves:</b></span>
+                <span id="number-of-moves"></span>
             </p>
         </div>
     </div>
@@ -42,11 +46,14 @@
         <div>
             <ul>
                 <li><b>Level:</b></li>
-                <li>X</li>
+                <li>TBD</li>
             </ul>
             <ul>
                 <li><b>Status:</b></li>
-                <li id="status">Waiting to start...</li>
+                <li class="status">
+                    <span id="status">Waiting to start</span>
+                    <span id="dots"></span>
+                </li>
             </ul>
         </div>
     </div>
@@ -125,7 +132,7 @@
         <div>
             <ul>
                 <li><b>Number of moves:</b></li>
-                <li id="moves"> X </li>
+                <li id="moves"> 0 </li>
             </ul>
             <ul>
                 <li><b>Elapsed Time:</b></li>
