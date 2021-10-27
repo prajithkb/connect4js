@@ -25,7 +25,6 @@ export class UI {
         $("#restart-button").click(() => {
             location.reload();
         });
-        window.connect4 = this;
     }
 
     startTimer() {

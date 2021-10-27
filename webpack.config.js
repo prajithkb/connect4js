@@ -18,6 +18,9 @@ module.exports = {
             },
         ],
     },
+    devServer: {
+        allowedHosts: 'all'
+    },
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
     },
