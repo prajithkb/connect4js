@@ -1,13 +1,16 @@
 .row {
 	margin: 60px auto 10px auto;
 	width: 100%;
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
 }
 
 .row div {
 	padding:0;
 	display: flex;
 	flex-direction: row;
-	justify-content: space-evenly;
+	justify-content: space-between;
     align-items: flex-end;
     align-content: center;
   }
@@ -41,6 +44,22 @@
 
 .no-close .ui-dialog-titlebar-close {display: none }
 
+ .ui-dialog-buttonpane .ui-dialog-buttonset	 { 
+    text-align: center;
+	float: none !important;;
+}
+
+.selection {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+}
+
+.dropdown {
+	height: fit-content;
+	vertical-align: middle;
+	margin: 1em;
+}
 #gameBoard {
     margin: 60px auto 10px auto;
     cursor: pointer;

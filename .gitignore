@@ -2,3 +2,4 @@ connect4js_found_online
 dist
 node_modules
 .DS_Store
+rust-simulator/target

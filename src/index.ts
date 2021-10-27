@@ -1,5 +1,5 @@
 import { UI } from './ui';
-import { Connect4, GameEvent } from './game';
+import { Connect4 } from './game';
 import './game.css';
 require("jquery-ui/themes/base/all.css");
 declare global {
@@ -8,7 +8,7 @@ declare global {
     }
 }
 const inputs = {
-    levelId: window.levelId
+    level: window.levelId
 };
 const game = new Connect4("Name", 6, 7);
 new UI(inputs, game);

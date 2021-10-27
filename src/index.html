@@ -7,11 +7,34 @@
         <%= htmlWebpackPlugin.options.title %>
     </title>
 </head>
+<script>
+
+</script>
 
 <body>
 
     <div id="game-start-dialog" title="Welcome to Connect4">
-        <p style="text-align:center">Please pick who plays first</p>
+        <div class="selection">
+            <p style="text-align:center">Please select the level of difficulty</p>
+            <select id="game-levels" class="dropdown">
+                <option value="1">Level 1</option>
+                <option value="2">Level 2</option>
+                <option value="3">Level 3</option>
+                <option value="4">Level 4</option>
+                <option value="5" selected>Level 5</option>
+            </select>
+        </div>
+        <div class="selection">
+            <p style="text-align:center">Please pick who plays first</p>
+            <select id="chosen-player" class="dropdown">
+                <option value="0">You</option>
+                <option value="1" selected>Computer</option>
+            </select>
+        </div>
+        <div id="predefined-moves" class="row" style="text-align: center;">
+            <label for="moves-textarea">Enter Predefined Moves</label>
+            <textarea id="moves-textarea" name="moves" rows="4" cols="50"></textarea>
+        </div>
     </div>
 
     <div id="game-over-dialog" title="Game Over" style="display: none;">
@@ -26,6 +49,9 @@
                 <span id="number-of-moves"></span>
             </p>
         </div>
+    </div>
+    <div id="restart" class="row" style="width: 50%; height: 4em;">
+        <button id="restart-button" style="height: 100%; font-size: large;">Restart</button>
     </div>
     <div id="game-status" class="row">
         <div>
@@ -46,7 +72,7 @@
         <div>
             <ul>
                 <li><b>Level:</b></li>
-                <li>TBD</li>
+                <li id="level"></li>
             </ul>
             <ul>
                 <li><b>Status:</b></li>
@@ -124,23 +150,24 @@
         <script>
             var winCoords = null;
             var board = null;
-            var levelId = 12;
+            var levelId = 1;
             action_is_post = false;
         </script>
     </div>
     <div id="moves-and-time" class="row">
         <div>
             <ul>
-                <li><b>Number of moves:</b></li>
+                <li><b>Moves:</b></li>
                 <li id="moves"> 0 </li>
             </ul>
             <ul>
                 <li><b>Elapsed Time:</b></li>
-                <li id="elapsed-time"></li>
+                <li id="elapsed-time" class="status"></li>
             </ul>
 
         </div>
     </div>
+
 </body>
 
 </html>

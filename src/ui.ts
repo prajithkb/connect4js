@@ -6,21 +6,26 @@ let actionInProgress = 0;
 let timeTaken = 0;
 
 interface UIInputs {
-    levelId: number,
+    level: number,
 }
 
 export class UI {
+    private predefinedMoves: Array<any>
     constructor(
         public inputs: UIInputs,
-        public connect4: Connect4
-
+        public connect4: Connect4,
     ) {
         this.inputs = inputs;
         this.connect4 = connect4;
+        this.predefinedMoves = [];
         connect4.onMoveEnd(this.onMoveEnd, this);
         connect4.onMoveStart(this.onMoveStart, this);
         this.subscribeForPlayerMove(connect4);
         this.gameStartDialog();
+        $("#restart-button").click(() => {
+            location.reload();
+        });
+        window.connect4 = this;
     }
 
     startTimer() {
@@ -84,7 +89,7 @@ export class UI {
                 actionInProgress = 0;
                 return;
             }
-            connect4.makeMove(PlayerTypes.First, c);
+            connect4.makeMove(PlayerTypes.Human, c);
         });
     }
 
@@ -94,17 +99,39 @@ export class UI {
             dialogClass: "no-close",
             buttons: [
                 {
-                    text: "You start",
+                    text: "Start",
                     click: function () {
                         $(this).dialog("close");
-                        ui.startTimer();
-                    }
-                },
-                {
-                    text: "Computer starts",
-                    click: function () {
-                        $(this).dialog("close");
-                        ui.nextMove(PlayerTypes.Second);
+                        let level = parseInt($("#game-levels").val());
+                        let player = parseInt($("#chosen-player").val());
+                        // initialize moves
+                        let movesJson = $.trim($("#moves-textarea").val());
+                        if (movesJson) {
+                            let moves: Array<any> = JSON.parse(movesJson);
+                            ui.predefinedMoves = moves.filter(m => m.player === PlayerTypes.Human).reverse();
+                        }
+                        if (player === PlayerTypes.Computer) {
+                            console.log("Computer will make the first move");
+                            $("#game-status").find("#status").text("Computer making a move");
+                            ui.connect4.smartMove(PlayerTypes.Computer);
+                        } else {
+                            if (ui.predefinedMoves.length > 0) {
+                                $("#game-status").find("#status").text("Using predefined  move");
+                                let nextMove = ui.predefinedMoves.pop();
+                                console.log(`Found predefined move ${JSON.stringify(nextMove)}`);
+                                try {
+                                    ui.connect4.makeMove(PlayerTypes.Human, nextMove.move.col);
+                                } catch (e) {
+                                    console.log("Broken! - clearing predefined moves");
+                                    ui.predefinedMoves.length = 0;
+                                    $("#game-status").find("#status").text("Waiting for your move");;
+                                }
+                            } else {
+                                $("#game-status").find("#status").text("Waiting for your move");
+                            }
+                        }
+                        $("#level").text(level);
+                        ui.inputs.level = level;
                         ui.startTimer();
                     }
                 }
@@ -125,11 +152,11 @@ export class UI {
                 let v = event.target;
                 let message = "";
                 switch (player) {
-                    case PlayerTypes.First: {
+                    case PlayerTypes.Human: {
                         message = "You Won!";
                         break;
                     };
-                    case PlayerTypes.Second: {
+                    case PlayerTypes.Computer: {
                         message = "You Lost!";
                         break;
                     };
@@ -170,11 +197,11 @@ export class UI {
         let winner = this.connect4.winner;
         let coords = this.connect4.winningCoords;
         let engine = this;
-        $(function () {
-            // Animate the coordinates
-            coords.map(([row, col]) => [5 - row, col])
+        if (winner === PlayerTypes.None) {
+            engine.gameOverDialog(PlayerTypes.None);
+        } else {
+            coords.map(([row, col]) => [this.connect4.rows - 1 - row, col])
                 .forEach(([row, col]) => {
-                    console.log(`Animating ${row}, ${col}`);
                     $(`#gameBoard #col${col} #col${col}x${row}`)
                         .fadeOut(200)
                         .fadeIn(200)
@@ -182,8 +209,9 @@ export class UI {
                         .fadeIn(200)
                         .fadeOut(200)
                         .fadeIn('slow', () => engine.gameOverDialog(winner));
+
                 });
-        });
+        }
     }
 
     onMoveStart(_: Player, __: string) {
@@ -197,11 +225,10 @@ export class UI {
      * @param row 
      */
     onMoveEnd(player: Player, col: string, row: number) {
-        console.log(`OnMoveEnd player: ${player}, name: ${col}, side: ${row}`)
         let engine: UI = this;
         $("#gameBoard").removeClass("loading");
         $("#num_of_moves").val(engine.render());
-        row = 5 - row;
+        row = this.connect4.rows - 1 - row;
         $("#gameBoard #col" + col + " .next-ball").addClass("animation-in-progress player" + player);
         $("#gameBoard #col" + col + " .next-ball").animate({
             top: "+=" + (56 * (row + 1) - 1)
@@ -213,11 +240,15 @@ export class UI {
                 $("#gameBoard #col" + col + " div:nth-child(" + (row + 2) + ")").html("<span class='ball player" + player + "'></span>");
                 $("#gameBoard #col" + col + " .next-ball").css("top", "");
                 $("#gameBoard .animation-in-progress").removeClass("animation-in-progress");
-                if (player === PlayerTypes.First) {
-                    engine.nextMove(PlayerTypes.Second);
+                if (player === PlayerTypes.Human) {
+                    engine.nextMove(PlayerTypes.Computer);
                 } else {
-                    console.log("waiting for your move");
                     $("#game-status").find("#status").text("Waiting for your move");
+                    if (engine.predefinedMoves.length > 0) {
+                        let nextMove = engine.predefinedMoves.pop();
+                        console.log(`Found predefined move ${JSON.stringify(nextMove)}`);
+                        engine.connect4.makeMove(PlayerTypes.Human, nextMove.move.col)
+                    }
                     $("#gameBoard #col" + col + " .next-ball").removeClass("player" + player);
                 }
                 actionInProgress = 0;
@@ -230,41 +261,37 @@ export class UI {
 
     /// Makes the next move
     nextMove(player: Player) {
-        if (!this.connect4.gameOver && player === PlayerTypes.Second) {
+        if (!this.connect4.gameOver && player === PlayerTypes.Computer) {
             $("#game-status").find("#status").text("Computer making a move");
             $("#gameBoard").addClass("loading");
             let weight = 0;
-            switch (this.inputs.levelId) {
-                case 0:
+            switch (this.inputs.level) {
                 case 1:
-                    /** @type {number} */
-                    weight = 50;
+                    weight = 40;
                     break;
                 case 2:
-                case 3:
-                    /** @type {number} */
                     weight = 30;
                     break;
+                case 3:
+                    weight = 20;
+                    break;
                 case 4:
-                case 5:
-                    /** @type {number} */
                     weight = 10;
                     break;
-                case 6:
-                case 7:
-                    /** @type {number} */
-                    weight = 5;
+                case 5:
+                    weight = 0;
+                    break;
                 default:
                     break;
             }
             // We decide to do smart move based on the weight
             // The lower the weight, the higher the chance of smart move
             if (Math.floor(Math.random() * 99 + 1) > weight) {
-                this.connect4.smartMove(player);
+                this.connect4.smartMove(PlayerTypes.Computer);
                 return;
             }
             // We do a random Move
-            this.connect4.randomMove(player);
+            this.connect4.randomMove();
         } else {
             console.log("Game over!");
         }
@@ -273,7 +300,7 @@ export class UI {
     render() {
         /** @type {number} */
         let renderedBNode = Math.floor(this.connect4.numberOfPieces / 2);
-        if (this.inputs.levelId % 2 === 0) {
+        if (this.inputs.level % 2 === 0) {
             /** @type {number} */
             renderedBNode = Math.ceil(this.connect4.numberOfPieces / 2);
         }
