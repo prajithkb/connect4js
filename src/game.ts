@@ -38,7 +38,7 @@ const NAMES: Map<Player, string> = new Map([
 ]);
 
 
-function playerToString(player: PlayerTypes) {
+export function playerToString(player: PlayerTypes) {
     return NAMES.get(player);
 }
 
@@ -187,7 +187,7 @@ export class Connect4 {
                             winningMoveFound = won;
                         }
                     }
-                    // negative slope diagona;
+                    // negative slope diagonal;
                     if (c - 3 > 0) {
                         let [score, won] = this.score([board[r][c], board[r + 1][c - 1], board[r + 2][c - 2], board[r + 3][c - 3]])
                         totalScore += score;
@@ -289,7 +289,11 @@ export class Connect4 {
     }
 
     printAllMoves() {
-        console.log(JSON.stringify(this.moves.map(([p, [row, col]]) => {
+        console.log(JSON.stringify(this.getAllMoves()));
+    }
+
+    getAllMoves() {
+        return this.moves.map(([p, [row, col]]) => {
             return {
                 player: p,
                 move: {
@@ -297,7 +301,7 @@ export class Connect4 {
                     col: col
                 }
             }
-        })));
+        });
     }
 
     /**
@@ -316,7 +320,6 @@ export class Connect4 {
         if (result) {
             let [[one, two, three, four], p] = result;
             console.log(`Found winning coords: ${one}, ${two}, ${three}, ${four}, player: ${playerToString(p)}`);
-            this.printAllMoves();
             this.gameOver = true;
             let [coords, winningPlayer] = result;
             this.winningCoords = coords;

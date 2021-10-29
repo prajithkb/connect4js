@@ -1,6 +1,6 @@
 var $ = require('jquery');
 require('jquery-ui-bundle');
-import { Connect4, Player, PlayerTypes } from './game'
+import { Connect4, Player, playerToString, PlayerTypes } from './game'
 
 let actionInProgress = 0;
 let timeTaken = 0;
@@ -11,6 +11,7 @@ interface UIInputs {
 
 export class UI {
     private predefinedMoves: Array<any>
+    private id: string
     constructor(
         public inputs: UIInputs,
         public connect4: Connect4,
@@ -18,6 +19,7 @@ export class UI {
         this.inputs = inputs;
         this.connect4 = connect4;
         this.predefinedMoves = [];
+        this.id = Date.now().toString();
         connect4.onMoveEnd(this.onMoveEnd, this);
         connect4.onMoveStart(this.onMoveStart, this);
         this.subscribeForPlayerMove(connect4);
@@ -111,6 +113,20 @@ export class UI {
                             let moves: Array<any> = JSON.parse(movesJson);
                             ui.predefinedMoves = moves.filter(m => m.player === PlayerTypes.Human).reverse();
                         }
+                        $.ajax({
+                            url: 'http://localhost:8080/log',
+                            type: 'post',
+                            data: JSON.stringify({
+                                message: JSON.stringify({
+                                    id: ui.id,
+                                    firstPlayer: playerToString(player)
+                                })
+                            }),
+                            contentType: "application/json; charset=utf-8",
+                            dataType: 'json',
+                            success: (data: string) => {
+                            }
+                        });
                         if (player === PlayerTypes.Computer) {
                             console.log("Computer will make the first move");
                             $("#game-status").find("#status").text("Computer making a move");
@@ -148,6 +164,7 @@ export class UI {
 
     gameOverDialog(player: Player) {
         let engine = this;
+
         $("#game-over-dialog").dialog({
             create: function (event: any, ui: any) {
                 let v = event.target;
@@ -198,6 +215,21 @@ export class UI {
         let winner = this.connect4.winner;
         let coords = this.connect4.winningCoords;
         let engine = this;
+        $.ajax({
+            url: '/log',
+            type: 'post',
+            data: JSON.stringify({
+                message: JSON.stringify({
+                    id: engine.id,
+                    allMoves: engine.connect4.getAllMoves(),
+                    winner: playerToString(winner),
+                }),
+            }),
+            contentType: "application/json; charset=utf-8",
+            dataType: 'json',
+            success: (data: string) => {
+            }
+        });
         if (winner === PlayerTypes.None) {
             engine.gameOverDialog(PlayerTypes.None);
         } else {
