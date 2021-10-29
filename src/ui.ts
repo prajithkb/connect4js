@@ -88,7 +88,7 @@ export class UI {
                 actionInProgress = 0;
                 return;
             }
-            connect4.makeMove(PlayerTypes.Human, c);
+            setTimeout(() => connect4.makeMove(PlayerTypes.Human, c), 10);
         });
     }
 
@@ -114,14 +114,14 @@ export class UI {
                         if (player === PlayerTypes.Computer) {
                             console.log("Computer will make the first move");
                             $("#game-status").find("#status").text("Computer making a move");
-                            ui.connect4.smartMove(PlayerTypes.Computer);
+                            setTimeout(() => ui.connect4.smartMove(PlayerTypes.Computer), 10);
                         } else {
                             if (ui.predefinedMoves.length > 0) {
                                 $("#game-status").find("#status").text("Using predefined  move");
                                 let nextMove = ui.predefinedMoves.pop();
                                 console.log(`Found predefined move ${JSON.stringify(nextMove)}`);
                                 try {
-                                    ui.connect4.makeMove(PlayerTypes.Human, nextMove.move.col);
+                                    setTimeout(() => ui.connect4.makeMove(PlayerTypes.Human, nextMove.move.col), 10);
                                 } catch (e) {
                                     console.log("Broken! - clearing predefined moves");
                                     ui.predefinedMoves.length = 0;
@@ -252,7 +252,7 @@ export class UI {
                     if (engine.predefinedMoves.length > 0) {
                         let nextMove = engine.predefinedMoves.pop();
                         console.log(`Found predefined move ${JSON.stringify(nextMove)}`);
-                        engine.connect4.makeMove(PlayerTypes.Human, nextMove.move.col)
+                        setTimeout(() => engine.connect4.makeMove(PlayerTypes.Human, nextMove.move.col), 10);
                     }
                     $("#gameBoard #col" + col + " .next-ball").removeClass("player" + player);
                 }
@@ -292,11 +292,11 @@ export class UI {
             // We decide to do smart move based on the weight
             // The lower the weight, the higher the chance of smart move
             if (Math.floor(Math.random() * 99 + 1) > weight) {
-                this.connect4.smartMove(PlayerTypes.Computer);
+                setTimeout(() => this.connect4.smartMove(PlayerTypes.Computer), 10);
                 return;
             }
             // We do a random Move
-            this.connect4.randomMove();
+            setTimeout(() => this.connect4.randomMove(), 10);
         } else {
             console.log("Game over!");
         }

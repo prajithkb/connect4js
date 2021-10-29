@@ -92,9 +92,7 @@
 	display:inline-block;
 	box-sizing:border-box;
 }
-#elapsed-time {
-	width: 18* calc(var(--width));
-}
+
 #moves-textarea {
 	max-width: 100%;
 }
