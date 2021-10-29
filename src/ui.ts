@@ -96,6 +96,8 @@ export class UI {
         let ui = this;
         $("#game-start-dialog").dialog({
             dialogClass: "no-close",
+            width: "auto",
+            height: "auto",
             buttons: [
                 {
                     text: "Start",
@@ -228,9 +230,13 @@ export class UI {
         $("#gameBoard").removeClass("loading");
         $("#num_of_moves").val(engine.render());
         row = this.connect4.rows - 1 - row;
+        let factor = 11;
+        if ($(window).width() > 1024) {
+            factor = 6;
+        }
         $("#gameBoard #col" + col + " .next-ball").addClass("animation-in-progress player" + player);
         $("#gameBoard #col" + col + " .next-ball").animate({
-            top: "+=" + (56 * (row + 1) - 1)
+            top: "+=" + (11 * factor * (row + 1) - 1)
         }, {
             duration: row * 150 + 500,
             easing: "easeOutBounce",
@@ -240,7 +246,7 @@ export class UI {
                 $("#gameBoard #col" + col + " .next-ball").css("top", "");
                 $("#gameBoard .animation-in-progress").removeClass("animation-in-progress");
                 if (player === PlayerTypes.Human) {
-                    engine.nextMove(PlayerTypes.Computer);
+                    setTimeout(() => engine.nextMove(PlayerTypes.Computer), 10);
                 } else {
                     $("#game-status").find("#status").text("Waiting for your move");
                     if (engine.predefinedMoves.length > 0) {
