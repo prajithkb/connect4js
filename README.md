@@ -1,1 +1,1 @@
-# Connect4 AI using minimax 
+# Connect4 AI using minimax   
