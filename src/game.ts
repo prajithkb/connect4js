@@ -42,6 +42,133 @@ export function playerToString(player: PlayerTypes) {
     return NAMES.get(player);
 }
 
+export function otherPlayer(player: PlayerTypes): PlayerTypes {
+    if (player == PlayerTypes.Human) {
+        return PlayerTypes.Computer
+    } else {
+        return PlayerTypes.Human
+    }
+}
+
+// Strategy used by http://pomakis.com/c4/connect_generic/c4.txt
+export class WinPositionState {
+    public state: Array<Array<Array<number>>>;
+    public winningPositions: Map<PlayerTypes, Array<number>>;
+    private rows: number;
+    private cols: number;
+    private numberToConnect: number;
+    private numberOfWinningPositions: number;
+
+    constructor(rows: number, cols: number, numberToConnect: number) {
+        this.rows = rows;
+        this.cols = cols;
+        this.numberToConnect = numberToConnect;
+        this.numberOfWinningPositions = this.computeNumberOfWinningPositions();
+        this.initialize();
+    }
+
+    initialize() {
+        this.state = [];
+        // Initialize the 3D state array
+        for (let row = 0; row < this.rows; row++) {
+            this.state[row] = [];
+            for (let col = 0; col < this.cols; col++) {
+                this.state[row][col] = [];
+            }
+        }
+        let winningPosition = 0;
+        /* Fill in the horizontal win positions */
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < (this.cols - this.numberToConnect + 1); col++) {
+                for (let pos = 0; pos < this.numberToConnect; pos++) {
+                    this.state[row][col + pos].push(winningPosition);
+                }
+                winningPosition++;
+            }
+
+        }
+        /** Fill in vertical win positions */
+        for (let row = 0; row < (this.rows - this.numberToConnect + 1); row++) {
+            for (let col = 0; col < this.cols; col++) {
+                for (let pos = 0; pos < this.numberToConnect; pos++) {
+                    this.state[row + pos][col].push(winningPosition);
+                }
+                winningPosition++;
+            }
+
+        }
+
+        /** Fill in positive slope diagonal win positions */
+        for (let row = 0; row < (this.rows - this.numberToConnect + 1); row++) {
+            for (let col = 0; col < this.cols - this.numberToConnect; col++) {
+                for (let pos = 0; pos < this.numberToConnect; pos++) {
+                    this.state[row + pos][col + pos].push(winningPosition);
+                }
+                winningPosition++;
+            }
+        }
+
+        /** Fill in negative slope diagonal win positions */
+        for (let row = this.rows - 1; row >= this.numberToConnect - 1; row--) {
+            for (let col = 0; col < (this.cols - this.numberToConnect + 1); col++) {
+                for (let pos = 0; pos < this.numberToConnect; pos++) {
+                    this.state[row - pos][col + pos].push(winningPosition);
+                }
+                winningPosition++;
+            }
+        }
+
+        // Set the points for all positions to 1
+        // Both players can win any position
+        let pointsForWinningPositions = new Array(this.numberOfWinningPositions + 1);
+        pointsForWinningPositions.fill(1);
+
+        this.winningPositions = new Map([
+            [PlayerTypes.Human, Object.assign([], pointsForWinningPositions)],
+            [PlayerTypes.Computer, pointsForWinningPositions],
+        ]);
+
+
+    }
+
+    printState() {
+        console.log("#############");
+        for (let row = 0; row < this.rows; row++) {
+            let r = '';
+            for (let col = 0; col < this.cols; col++) {
+                r += `[${this.state[row][col]}]`;
+                r += ',';
+            }
+            console.log(r.substring(0, r.length - 1));
+        }
+        console.log("#############");
+    }
+
+    occupyPosition(row: number, col: number, player: PlayerTypes) {
+        let winningPositions = this.state[row][col];
+        for (let pos of winningPositions) {
+            this.winningPositions.get(player)[pos] <<= 1;
+            this.winningPositions.get(otherPlayer(player))[pos] = 0;
+        }
+    }
+
+    resetPosition(row: number, col: number) {
+        let winningPositions = this.state[row][col];
+        for (let pos of winningPositions) {
+            this.winningPositions.get(PlayerTypes.Human)[pos] >>= 1;
+            this.winningPositions.get(PlayerTypes.Computer)[pos] >>= 1;
+        }
+    }
+
+
+    computeNumberOfWinningPositions(): number {
+        let x = this.rows;
+        let y = this.cols;
+        let n = this.numberToConnect;
+        return 4 * x * y - 3 * x * n - 3 * y * n + 3 * x + 3 * y - 4 * n + 2 * n * n + 2.
+    }
+}
+
 export class Connect4 {
     public name: string;
     public gameOver: boolean;
@@ -53,7 +180,9 @@ export class Connect4 {
     public numberOfPieces: number;
     private subscribers: Map<GameEvent, Subscription[]>;
     private moves: Array<[PlayerTypes, [number, number]]>;
-    constructor(name: string, rows: number, cols: number) {
+    private winPositionState: WinPositionState;
+    private numberToConnect: number;
+    constructor(name: string, rows: number, cols: number, numberToConnect: number = 4) {
         this.name = name
         this.subscribers = new Map();
         this.rows = rows;
@@ -61,6 +190,9 @@ export class Connect4 {
         this.board = [];
         this.moves = [];
         this.numberOfPieces = 0;
+        this.numberToConnect = numberToConnect;
+        this.winPositionState = new WinPositionState(rows, cols, numberToConnect)
+        this.winPositionState.printState();
         for (var i = 0; i < this.rows; i++) {
             this.board.push([]);
             for (var j = 0; j < this.cols; j++) {
@@ -152,6 +284,38 @@ export class Connect4 {
 
     }
 
+    private scoreBasedOnWinningPositions(): [number, boolean, boolean] {
+        let emptySlotFound = false;
+        let board = this.board;
+        let totalScore = 0;
+        // let totalScore = 0;
+        let winningMoveFound = false;
+        // let winningPositions = this.winPositionState.winningPositions.get(player);
+        // Sum the total scores
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                let player = board[r][c];
+                if (player == PlayerTypes.None) {
+                    emptySlotFound = true;
+                } else {
+                    let currentWinPositions = this.winPositionState.state[r][c];
+                    let allWinPositionsForCurrentPlayer = this.winPositionState.winningPositions.get(player);
+                    for (let winPos of currentWinPositions) {
+                        if (allWinPositionsForCurrentPlayer[winPos] == 1 << this.numberToConnect) {
+                            winningMoveFound = true;
+                        }
+                        totalScore += allWinPositionsForCurrentPlayer[winPos];
+                    }
+                }
+
+            }
+        }
+        if (player == PlayerTypes.Human) {
+            totalScore = -1 * totalScore;
+        }
+        return [totalScore, emptySlotFound, winningMoveFound]
+    }
+
     private scoreBasedOnCurrentState(): [number, boolean, boolean] {
         let emptySlotFound = false;
         let board = this.board;
@@ -223,7 +387,8 @@ export class Connect4 {
      * @returns 
      */
     minimax(maximizing: boolean, depth: number, alpha: number, beta: number): number {
-        let [score, movesLeft, winningMoveFound] = this.scoreBasedOnCurrentState();
+        // let [score, movesLeft, winningMoveFound] = this.scoreBasedOnCurrentState();
+        let [score, movesLeft, winningMoveFound] = this.scoreBasedOnWinningPositions();
         // this.printBoardToConsole();
         // console.log(`Score for current state: ${score}, depth ${depth}`);
         if (depth == 0 || !movesLeft || winningMoveFound) {
@@ -240,6 +405,7 @@ export class Connect4 {
                 let score = this.minimax(false, depth - 1, alpha, beta);
                 // Reset the board
                 this.board[row][col] = PlayerTypes.None;
+                this.winPositionState.resetPosition(row, col);
                 bestScore = Math.max(score, bestScore);
                 alpha = Math.max(alpha, bestScore);
                 if (beta <= alpha) {
@@ -254,6 +420,7 @@ export class Connect4 {
                 let score = this.minimax(true, depth - 1, alpha, beta);
                 // Reset the board
                 this.board[row][col] = PlayerTypes.None;
+                this.winPositionState.resetPosition(row, col);
                 bestScore = Math.min(score, bestScore);
                 beta = Math.min(beta, bestScore);
                 if (beta <= alpha) {
