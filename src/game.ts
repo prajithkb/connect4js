@@ -54,6 +54,7 @@ export function otherPlayer(player: PlayerTypes): PlayerTypes {
 export class WinPositionState {
     public state: Array<Array<Array<number>>>;
     public winningPositions: Map<PlayerTypes, Array<number>>;
+    public stack: Array<Map<PlayerTypes, Array<number>>>;
     private rows: number;
     private cols: number;
     private numberToConnect: number;
@@ -127,8 +128,8 @@ export class WinPositionState {
             [PlayerTypes.Human, Object.assign([], pointsForWinningPositions)],
             [PlayerTypes.Computer, pointsForWinningPositions],
         ]);
-
-
+        this.stack = [];
+        this.stack.push(this.winningPositions);
     }
 
     printState() {
@@ -145,6 +146,9 @@ export class WinPositionState {
     }
 
     occupyPosition(row: number, col: number, player: PlayerTypes) {
+        let copy = Object.assign([], this.winningPositions);
+        this.stack.push(this.winningPositions);
+        this.winningPositions = copy;
         let winningPositions = this.state[row][col];
         for (let pos of winningPositions) {
             this.winningPositions.get(player)[pos] <<= 1;
@@ -153,11 +157,8 @@ export class WinPositionState {
     }
 
     resetPosition(row: number, col: number) {
-        let winningPositions = this.state[row][col];
-        for (let pos of winningPositions) {
-            this.winningPositions.get(PlayerTypes.Human)[pos] >>= 1;
-            this.winningPositions.get(PlayerTypes.Computer)[pos] >>= 1;
-        }
+        let prev = this.stack.pop();
+        this.winningPositions = prev;
     }
 
 
@@ -304,15 +305,17 @@ export class Connect4 {
                         if (allWinPositionsForCurrentPlayer[winPos] == 1 << this.numberToConnect) {
                             winningMoveFound = true;
                         }
-                        totalScore += allWinPositionsForCurrentPlayer[winPos];
+                        if (player == PlayerTypes.Human) {
+                            totalScore -= allWinPositionsForCurrentPlayer[winPos];
+                        } else {
+                            totalScore += allWinPositionsForCurrentPlayer[winPos];
+                        }
                     }
                 }
 
             }
         }
-        if (player == PlayerTypes.Human) {
-            totalScore = -1 * totalScore;
-        }
+
         return [totalScore, emptySlotFound, winningMoveFound]
     }
 
@@ -402,6 +405,7 @@ export class Connect4 {
             let bestScore = -Infinity;
             for (let [row, col] of rowCols) {
                 this.board[row][col] = PlayerTypes.Computer;
+                this.winPositionState.occupyPosition(row, col, PlayerTypes.Computer);
                 let score = this.minimax(false, depth - 1, alpha, beta);
                 // Reset the board
                 this.board[row][col] = PlayerTypes.None;
@@ -417,6 +421,7 @@ export class Connect4 {
             let bestScore = Infinity;
             for (let [row, col] of rowCols) {
                 this.board[row][col] = PlayerTypes.Human;
+                this.winPositionState.occupyPosition(row, col, PlayerTypes.Human);
                 let score = this.minimax(true, depth - 1, alpha, beta);
                 // Reset the board
                 this.board[row][col] = PlayerTypes.None;

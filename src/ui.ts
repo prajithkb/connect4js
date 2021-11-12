@@ -12,6 +12,7 @@ interface UIInputs {
 export class UI {
     private predefinedMoves: Array<any>
     private id: string
+    private autoPlayWithAI: boolean
     constructor(
         public inputs: UIInputs,
         public connect4: Connect4,
@@ -24,6 +25,7 @@ export class UI {
         connect4.onMoveStart(this.onMoveStart, this);
         this.subscribeForPlayerMove(connect4);
         this.gameStartDialog();
+        this.autoPlayWithAI = false
         $("#restart-button").click(() => {
             location.reload();
         });
@@ -107,6 +109,11 @@ export class UI {
                         $(this).dialog("close");
                         let level = parseInt($("#game-levels").val());
                         let player = parseInt($("#chosen-player").val());
+                        let autoPLayAI = false;;
+                        if ($('#auto-play-ai').is(":checked")) {
+                            ui.autoPlayWithAI = true;
+                        }
+                        console.log(autoPLayAI)
                         // initialize moves
                         let movesJson = $.trim($("#moves-textarea").val());
                         if (movesJson) {
@@ -278,13 +285,29 @@ export class UI {
                 $("#gameBoard #col" + col + " .next-ball").css("top", "");
                 $("#gameBoard .animation-in-progress").removeClass("animation-in-progress");
                 if (player === PlayerTypes.Human) {
+
                     setTimeout(() => engine.nextMove(PlayerTypes.Computer), 10);
+
+
                 } else {
                     $("#game-status").find("#status").text("Waiting for your move");
                     if (engine.predefinedMoves.length > 0) {
                         let nextMove = engine.predefinedMoves.pop();
                         console.log(`Found predefined move ${JSON.stringify(nextMove)}`);
                         setTimeout(() => engine.connect4.makeMove(PlayerTypes.Human, nextMove.move.col), 10);
+                    } else if (engine.autoPlayWithAI) {
+                        setTimeout(() => $.ajax({
+                            url: '/ai',
+                            type: 'get',
+                            data: {
+                                pos: "4"
+                            },
+                            contentType: "application/json; charset=utf-8",
+                            dataType: 'json',
+                            success: (data: string) => {
+                                console.log(data);
+                            }
+                        }));
                     }
                     $("#gameBoard #col" + col + " .next-ball").removeClass("player" + player);
                 }
