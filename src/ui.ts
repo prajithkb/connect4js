@@ -113,7 +113,7 @@ export class UI {
                         if ($('#auto-play-ai').is(":checked")) {
                             ui.autoPlayWithAI = true;
                         }
-                        console.log(autoPLayAI)
+                        console.log(`AI auto play enabled: ${ui.autoPlayWithAI}`);
                         // initialize moves
                         let movesJson = $.trim($("#moves-textarea").val());
                         if (movesJson) {
@@ -121,7 +121,7 @@ export class UI {
                             ui.predefinedMoves = moves.filter(m => m.player === PlayerTypes.Human).reverse();
                         }
                         $.ajax({
-                            url: 'http://localhost:8080/log',
+                            url: '/log',
                             type: 'post',
                             data: JSON.stringify({
                                 message: JSON.stringify({
@@ -265,6 +265,7 @@ export class UI {
      * @param row 
      */
     onMoveEnd(player: Player, col: string, row: number) {
+        debugger;
         let engine: UI = this;
         $("#gameBoard").removeClass("loading");
         $("#num_of_moves").val(engine.render());
@@ -296,16 +297,33 @@ export class UI {
                         console.log(`Found predefined move ${JSON.stringify(nextMove)}`);
                         setTimeout(() => engine.connect4.makeMove(PlayerTypes.Human, nextMove.move.col), 10);
                     } else if (engine.autoPlayWithAI) {
+                        let allMoves = engine.connect4.getAllMoves();
+                        let allCols = allMoves
+                            .map(m => m.move.col.toString())
+                            .map(m => parseInt(m))
+                            .map(m => m + 1)
+                            .join('');
                         setTimeout(() => $.ajax({
                             url: '/ai',
                             type: 'get',
                             data: {
-                                pos: "4"
+                                pos: allCols
                             },
                             contentType: "application/json; charset=utf-8",
                             dataType: 'json',
-                            success: (data: string) => {
-                                console.log(data);
+                            success: (data: any) => {
+                                let scores: Array<number> = data.score;
+                                let sanitizedScores = scores.map(s => {
+                                    if (s == 100) {
+                                        return -1000;
+                                    } else {
+                                        return s;
+                                    }
+                                });
+                                let maxValue = Math.max(...sanitizedScores);
+                                let col = sanitizedScores.indexOf(maxValue);
+                                console.log(`Picked col ${col} by AI, maxValue: ${maxValue}, ${JSON.stringify(data)}`);
+                                engine.connect4.makeMove(PlayerTypes.Human, col)
                             }
                         }));
                     }

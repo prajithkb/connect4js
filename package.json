@@ -31,5 +31,8 @@
     "express-http-proxy": "^1.6.3",
     "http-proxy": "^1.18.1",
     "winston": "^3.3.3"
+  },
+  "dependencies": {
+    "axios": "^0.24.0"
   }
 }

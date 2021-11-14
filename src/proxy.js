@@ -1,8 +1,10 @@
 var proxy = require('express-http-proxy');
 var express = require('express')
 var app = express();
+var https = require('https');
 const { exec } = require('child_process');
 var winston = require('winston');
+var axios = require('axios');
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.json(),
@@ -74,6 +76,25 @@ app.post('/log', (req, res) => {
     console.log(`${JSON.stringify(message)}`);
     res.sendStatus(200);
 });
+
+var connect4AI = {
+    host: 'connect4.gamesolver.org',
+    port: 443,
+    path: '/solve',
+    method: 'GET'
+};
+
+
+app.get('/ai', (req, res) => {
+    axios.get(`https://connect4.gamesolver.org/solve?pos=${req.query.pos}`)
+        .then(response => {
+            res.send(JSON.stringify(response.data))
+        })
+        .catch(error => {
+            console.log(error);
+        });
+});
+
 
 
 // Default

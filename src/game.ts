@@ -53,18 +53,23 @@ export function otherPlayer(player: PlayerTypes): PlayerTypes {
 // Strategy used by http://pomakis.com/c4/connect_generic/c4.txt
 export class WinPositionState {
     public state: Array<Array<Array<number>>>;
-    public winningPositions: Map<PlayerTypes, Array<number>>;
+    public allWinningPositions: Map<PlayerTypes, Array<number>>;
     public stack: Array<Map<PlayerTypes, Array<number>>>;
     private rows: number;
     private cols: number;
     private numberToConnect: number;
     private numberOfWinningPositions: number;
+    private currentScore: Map<PlayerTypes, number>;
 
     constructor(rows: number, cols: number, numberToConnect: number) {
         this.rows = rows;
         this.cols = cols;
         this.numberToConnect = numberToConnect;
         this.numberOfWinningPositions = this.computeNumberOfWinningPositions();
+        this.currentScore = new Map([
+            [PlayerTypes.Human, 0],
+            [PlayerTypes.Computer, 0],
+        ])
         this.initialize();
     }
 
@@ -124,12 +129,11 @@ export class WinPositionState {
         let pointsForWinningPositions = new Array(this.numberOfWinningPositions + 1);
         pointsForWinningPositions.fill(1);
 
-        this.winningPositions = new Map([
+        this.allWinningPositions = new Map([
             [PlayerTypes.Human, Object.assign([], pointsForWinningPositions)],
             [PlayerTypes.Computer, pointsForWinningPositions],
         ]);
         this.stack = [];
-        this.stack.push(this.winningPositions);
     }
 
     printState() {
@@ -146,19 +150,29 @@ export class WinPositionState {
     }
 
     occupyPosition(row: number, col: number, player: PlayerTypes) {
-        let copy = Object.assign([], this.winningPositions);
-        this.stack.push(this.winningPositions);
-        this.winningPositions = copy;
-        let winningPositions = this.state[row][col];
-        for (let pos of winningPositions) {
-            this.winningPositions.get(player)[pos] <<= 1;
-            this.winningPositions.get(otherPlayer(player))[pos] = 0;
+        // create a copy
+        let copy = new Map([
+            [PlayerTypes.Human, Object.assign([], this.allWinningPositions.get(PlayerTypes.Human))],
+            [PlayerTypes.Computer, Object.assign([], this.allWinningPositions.get(PlayerTypes.Computer))],
+        ])
+        // set the copy as the current state
+        let allWinningPositionsForCell = this.state[row][col];
+        for (let pos of allWinningPositionsForCell) {
+            // mark the count, left shift (or multiply by 2)
+            copy.get(player)[pos] <<= 1;
+            // Other player loses the count, or set it to zero
+            copy.get(otherPlayer(player))[pos] = 0;
         }
+        // push the current state to the stack
+        this.stack.push(this.allWinningPositions);
+        this.allWinningPositions = copy;
     }
 
-    resetPosition(row: number, col: number) {
+    resetPosition() {
+        // pop the last saved copy
         let prev = this.stack.pop();
-        this.winningPositions = prev;
+        // set the winning positions
+        this.allWinningPositions = prev;
     }
 
 
@@ -229,10 +243,12 @@ export class Connect4 {
         let rowCols = this.getPossibleRowCols();
         for (let [row, col] of rowCols) {
             this.board[row][col] = player;
+            this.winPositionState.occupyPosition(row, col, player);
             let score = this.minimax(false, DEPTH, -Infinity, Infinity);
             scoresAndCols.push([score, col]);
             // Reset the board
             this.board[row][col] = PlayerTypes.None;
+            this.winPositionState.resetPosition();
             if (score > bestScore) {
                 bestScore = score;
                 bestCol = col;
@@ -289,33 +305,36 @@ export class Connect4 {
         let emptySlotFound = false;
         let board = this.board;
         let totalScore = 0;
-        // let totalScore = 0;
         let winningMoveFound = false;
-        // let winningPositions = this.winPositionState.winningPositions.get(player);
-        // Sum the total scores
+        console.log('####');
         for (let r = 0; r < this.rows; r++) {
+            let row = '';
             for (let c = 0; c < this.cols; c++) {
                 let player = board[r][c];
                 if (player == PlayerTypes.None) {
                     emptySlotFound = true;
+                    row += '-,';
                 } else {
-                    let currentWinPositions = this.winPositionState.state[r][c];
-                    let allWinPositionsForCurrentPlayer = this.winPositionState.winningPositions.get(player);
-                    for (let winPos of currentWinPositions) {
-                        if (allWinPositionsForCurrentPlayer[winPos] == 1 << this.numberToConnect) {
+                    let winPositionsForCell = this.winPositionState.state[r][c];
+                    let allWinPositionsForCurrentPlayer = this.winPositionState.allWinningPositions.get(player);
+                    let scoreForCell = 0;
+                    for (let winPosition of winPositionsForCell) {
+                        scoreForCell += allWinPositionsForCurrentPlayer[winPosition];
+                        if (allWinPositionsForCurrentPlayer[winPosition] == (1 << this.numberToConnect)) {
                             winningMoveFound = true;
                         }
-                        if (player == PlayerTypes.Human) {
-                            totalScore -= allWinPositionsForCurrentPlayer[winPos];
-                        } else {
-                            totalScore += allWinPositionsForCurrentPlayer[winPos];
-                        }
                     }
+                    if (player == PlayerTypes.Human) {
+                        scoreForCell *= -1;
+                    }
+                    row += scoreForCell + ",";
+                    totalScore += scoreForCell;
                 }
 
             }
+            // console.log(row);
         }
-
+        console.log(`####, totalScore ${totalScore}`);
         return [totalScore, emptySlotFound, winningMoveFound]
     }
 
@@ -392,9 +411,17 @@ export class Connect4 {
     minimax(maximizing: boolean, depth: number, alpha: number, beta: number): number {
         // let [score, movesLeft, winningMoveFound] = this.scoreBasedOnCurrentState();
         let [score, movesLeft, winningMoveFound] = this.scoreBasedOnWinningPositions();
+        if (winningMoveFound) {
+            if (maximizing) {
+                return Infinity;
+            } else {
+                return -Infinity;
+            }
+        }
         // this.printBoardToConsole();
         // console.log(`Score for current state: ${score}, depth ${depth}`);
-        if (depth == 0 || !movesLeft || winningMoveFound) {
+        if (depth == 0 || !movesLeft) {
+            // console.log(`depth ${depth}, winningMoveFound ${winningMoveFound}, score ${score}`)
             return score;
         }
         // sort to get the columns in the middle first.
@@ -409,13 +436,14 @@ export class Connect4 {
                 let score = this.minimax(false, depth - 1, alpha, beta);
                 // Reset the board
                 this.board[row][col] = PlayerTypes.None;
-                this.winPositionState.resetPosition(row, col);
+                this.winPositionState.resetPosition();
                 bestScore = Math.max(score, bestScore);
                 alpha = Math.max(alpha, bestScore);
                 if (beta <= alpha) {
                     break;
                 }
             }
+            console.log(`max: bestScore ${bestScore}`);
             return bestScore;
         } else {
             let bestScore = Infinity;
@@ -425,13 +453,14 @@ export class Connect4 {
                 let score = this.minimax(true, depth - 1, alpha, beta);
                 // Reset the board
                 this.board[row][col] = PlayerTypes.None;
-                this.winPositionState.resetPosition(row, col);
+                this.winPositionState.resetPosition();
                 bestScore = Math.min(score, bestScore);
                 beta = Math.min(beta, bestScore);
                 if (beta <= alpha) {
                     break;
                 }
             }
+            console.log(`min: bestScore ${bestScore}`);
             return bestScore;
         }
     }
