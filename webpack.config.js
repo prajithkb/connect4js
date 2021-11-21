@@ -37,6 +37,9 @@ module.exports = {
         filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist'),
     },
+    experiments: {
+        asyncWebAssembly: true,
+    },
     plugins: [
         new HtmlWebpackPlugin({
             template: './src/index.html',

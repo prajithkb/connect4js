@@ -5,7 +5,7 @@ export enum GameEvent {
 
 const NOT_POSSIBLE = -100000;
 
-const DEPTH = 5;
+const DEPTH = 6;
 
 export type OnMoveEnd = (player: Player, col: string, row: number) => void;
 
@@ -55,26 +55,23 @@ export class WinPositionState {
     public state: Array<Array<Array<number>>>;
     public allWinningPositions: Map<PlayerTypes, Array<number>>;
     public stack: Array<Map<PlayerTypes, Array<number>>>;
+    public scoresStack: Array<[number, number]>;
     private rows: number;
     private cols: number;
     private numberToConnect: number;
     private numberOfWinningPositions: number;
-    private currentScore: Map<PlayerTypes, number>;
 
     constructor(rows: number, cols: number, numberToConnect: number) {
         this.rows = rows;
         this.cols = cols;
         this.numberToConnect = numberToConnect;
         this.numberOfWinningPositions = this.computeNumberOfWinningPositions();
-        this.currentScore = new Map([
-            [PlayerTypes.Human, 0],
-            [PlayerTypes.Computer, 0],
-        ])
         this.initialize();
     }
 
     initialize() {
         this.state = [];
+        this.scoresStack = [];
         // Initialize the 3D state array
         for (let row = 0; row < this.rows; row++) {
             this.state[row] = [];
@@ -94,8 +91,8 @@ export class WinPositionState {
 
         }
         /** Fill in vertical win positions */
-        for (let row = 0; row < (this.rows - this.numberToConnect + 1); row++) {
-            for (let col = 0; col < this.cols; col++) {
+        for (let col = 0; col < this.cols; col++) {
+            for (let row = 0; row < (this.rows - this.numberToConnect + 1); row++) {
                 for (let pos = 0; pos < this.numberToConnect; pos++) {
                     this.state[row + pos][col].push(winningPosition);
                 }
@@ -105,8 +102,8 @@ export class WinPositionState {
         }
 
         /** Fill in positive slope diagonal win positions */
-        for (let row = 0; row < (this.rows - this.numberToConnect + 1); row++) {
-            for (let col = 0; col < this.cols - this.numberToConnect; col++) {
+        for (let col = 0; col < (this.cols - this.numberToConnect + 1); col++) {
+            for (let row = 0; row < (this.rows - this.numberToConnect + 1); row++) {
                 for (let pos = 0; pos < this.numberToConnect; pos++) {
                     this.state[row + pos][col + pos].push(winningPosition);
                 }
@@ -114,15 +111,18 @@ export class WinPositionState {
             }
         }
 
+
         /** Fill in negative slope diagonal win positions */
-        for (let row = this.rows - 1; row >= this.numberToConnect - 1; row--) {
-            for (let col = 0; col < (this.cols - this.numberToConnect + 1); col++) {
+        for (let col = this.numberToConnect - 1; col < this.cols; col++) {
+            for (let row = 0; row < (this.rows - this.numberToConnect + 1); row++) {
                 for (let pos = 0; pos < this.numberToConnect; pos++) {
-                    this.state[row - pos][col + pos].push(winningPosition);
+                    // console.debug(`${col} ${pos} ${row}`);
+                    this.state[row + pos][col - pos].push(winningPosition);
                 }
                 winningPosition++;
             }
         }
+
 
         // Set the points for all positions to 1
         // Both players can win any position
@@ -137,19 +137,20 @@ export class WinPositionState {
     }
 
     printState() {
-        console.log("#############");
+        console.debug("#############");
         for (let row = 0; row < this.rows; row++) {
             let r = '';
             for (let col = 0; col < this.cols; col++) {
                 r += `[${this.state[row][col]}]`;
                 r += ',';
             }
-            console.log(r.substring(0, r.length - 1));
+            console.debug(r.substring(0, r.length - 1));
         }
-        console.log("#############");
+        console.debug("#############");
     }
 
     occupyPosition(row: number, col: number, player: PlayerTypes) {
+        console.debug(`Occupying col: ${col}, row: ${row}`);
         // create a copy
         let copy = new Map([
             [PlayerTypes.Human, Object.assign([], this.allWinningPositions.get(PlayerTypes.Human))],
@@ -157,12 +158,22 @@ export class WinPositionState {
         ])
         // set the copy as the current state
         let allWinningPositionsForCell = this.state[row][col];
+        let allWinPositionsForHuman = this.allWinningPositions.get(PlayerTypes.Human);
+        let allWinPositionsForComputer = this.allWinningPositions.get(PlayerTypes.Computer);
         for (let pos of allWinningPositionsForCell) {
             // mark the count, left shift (or multiply by 2)
             copy.get(player)[pos] <<= 1;
             // Other player loses the count, or set it to zero
             copy.get(otherPlayer(player))[pos] = 0;
         }
+        let totalScoreForComputer = 0;
+        let totalScoreForHuman = 0;
+        for (let i = 0; i < allWinPositionsForHuman.length; i++) {
+            totalScoreForHuman += allWinPositionsForHuman[i];
+            totalScoreForComputer += allWinPositionsForComputer[i];
+        }
+        this.scoresStack.push([totalScoreForHuman, totalScoreForComputer]);
+
         // push the current state to the stack
         this.stack.push(this.allWinningPositions);
         this.allWinningPositions = copy;
@@ -173,6 +184,7 @@ export class WinPositionState {
         let prev = this.stack.pop();
         // set the winning positions
         this.allWinningPositions = prev;
+        this.scoresStack.pop();
     }
 
 
@@ -227,7 +239,7 @@ export class Connect4 {
                 }
             }
             line += "]";
-            console.log(line);
+            console.debug(line);
         }
     }
 
@@ -244,7 +256,7 @@ export class Connect4 {
         for (let [row, col] of rowCols) {
             this.board[row][col] = player;
             this.winPositionState.occupyPosition(row, col, player);
-            let score = this.minimax(false, DEPTH, -Infinity, Infinity);
+            let score = this.minimax(false, DEPTH - 1, -Infinity, Infinity);
             scoresAndCols.push([score, col]);
             // Reset the board
             this.board[row][col] = PlayerTypes.None;
@@ -255,146 +267,68 @@ export class Connect4 {
             }
         }
         if (bestCol === NOT_POSSIBLE) {
-            console.log(`No way to win, for player :${playerToString(player)}, attempting a random move`);
+            console.debug(`No way to win, for player :${playerToString(player)}, attempting a random move`);
             this.randomMove();
         } else {
-            console.log(`Picked col ${bestCol} for ${playerToString(player)} from ${JSON.stringify(scoresAndCols.map(([score, col]) => {
+            console.info(`Picked col ${bestCol} for ${playerToString(player)} from ${JSON.stringify(scoresAndCols.map(([score, col]) => {
                 return { col: col, score: score }
-            }))}`);
+            }).sort((a, b) => a.col - b.col))}`);
             this.makeMove(player, bestCol);
         }
     }
 
-    score(cells: Array<PlayerTypes>): [number, boolean] {
-        let empty = 0;
-        let countHuman = 0;
-        let countComputer = 0;
-        let lookupTable: Map<string, [number, boolean]> = new Map(Object.entries({
-            // countHuman_countComputer_empty
-            "4_0_0": [-2000000, true],
-            "3_0_1": [-10000, false],
-            "2_0_2": [-100, false],
-            "1_0_3": [-10, false],
 
-            "0_4_0": [2000000, true],
-            "0_3_1": [10000, false],
-            "0_2_2": [100, false],
-            "0_1_3": [10, false]
-        }));
-        for (let cell of cells) {
-            switch (cell) {
-                case PlayerTypes.Human: countHuman++;
-                    break;
-                case PlayerTypes.Computer: countComputer++;
-                    break;
-                default:
-                    empty++;
-                    break;
-            }
-        }
-        let key = `${countHuman}_${countComputer}_${empty}`;
-        if (lookupTable.has(key)) {
-            return lookupTable.get(key)
-        } else {
-            return [0, false];
-        }
-
-    }
-
-    private scoreBasedOnWinningPositions(): [number, boolean, boolean] {
+    private scoreBasedOnWinningPositions(): [number, boolean, boolean, number] {
         let emptySlotFound = false;
         let board = this.board;
-        let totalScore = 0;
         let winningMoveFound = false;
-        console.log('####');
-        for (let r = 0; r < this.rows; r++) {
-            let row = '';
-            for (let c = 0; c < this.cols; c++) {
-                let player = board[r][c];
-                if (player == PlayerTypes.None) {
-                    emptySlotFound = true;
-                    row += '-,';
-                } else {
-                    let winPositionsForCell = this.winPositionState.state[r][c];
-                    let allWinPositionsForCurrentPlayer = this.winPositionState.allWinningPositions.get(player);
-                    let scoreForCell = 0;
-                    for (let winPosition of winPositionsForCell) {
-                        scoreForCell += allWinPositionsForCurrentPlayer[winPosition];
-                        if (allWinPositionsForCurrentPlayer[winPosition] == (1 << this.numberToConnect)) {
-                            winningMoveFound = true;
-                        }
-                    }
-                    if (player == PlayerTypes.Human) {
-                        scoreForCell *= -1;
-                    }
-                    row += scoreForCell + ",";
-                    totalScore += scoreForCell;
-                }
-
-            }
-            // console.log(row);
-        }
-        console.log(`####, totalScore ${totalScore}`);
-        return [totalScore, emptySlotFound, winningMoveFound]
-    }
-
-    private scoreBasedOnCurrentState(): [number, boolean, boolean] {
-        let emptySlotFound = false;
-        let board = this.board;
         let totalScore = 0;
-        let winningMoveFound = false;
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 let player = board[r][c];
                 if (player == PlayerTypes.None) {
                     emptySlotFound = true;
                 }
-                // horizontal
-                if (c + 3 < this.cols) {
-                    let [score, won] = this.score([board[r][c], board[r][c + 1], board[r][c + 2], board[r][c + 3]]);
-                    totalScore += score;
-                    if (!winningMoveFound) {
-                        winningMoveFound = won;
-                    }
-
-                }
-                // vertical
-                if (r + 3 < this.rows) {
-                    let [score, won] = this.score([board[r][c], board[r + 1][c], board[r + 2][c], board[r + 3][c]]);
-                    totalScore += score;
-                    if (!winningMoveFound) {
-                        winningMoveFound = won
-                    }
-                    // positive slope diagonal
-                    if (c + 3 < this.cols) {
-                        let [score, won] = this.score([board[r][c], board[r + 1][c + 1], board[r + 2][c + 2], board[r + 3][c + 3]])
-                        totalScore += score;
-                        if (!winningMoveFound) {
-                            winningMoveFound = won;
-                        }
-                    }
-                    // negative slope diagonal;
-                    if (c - 3 > 0) {
-                        let [score, won] = this.score([board[r][c], board[r + 1][c - 1], board[r + 2][c - 2], board[r + 3][c - 3]])
-                        totalScore += score;
-                        if (!winningMoveFound) {
-                            winningMoveFound = won;
-                        }
-                    }
-                }
-
             }
         }
-        return [totalScore, emptySlotFound, winningMoveFound];
+        let allWinPositionsForHuman = this.winPositionState.allWinningPositions.get(PlayerTypes.Human);
+        let allWinPositionsForComputer = this.winPositionState.allWinningPositions.get(PlayerTypes.Computer);
+        console.debug(`Human win positions: ${allWinPositionsForHuman}`);
+        console.debug(`Computer win positions: ${allWinPositionsForComputer}`);
+        let totalScoreForComputer = 0;
+        let totalScoreForHuman = 0;
+        for (let i = 0; i < allWinPositionsForHuman.length; i++) {
+            totalScoreForHuman += allWinPositionsForHuman[i];
+            totalScoreForComputer += allWinPositionsForComputer[i];
+        }
+        let scoreBasedOnStack = totalScoreForComputer - totalScoreForHuman;
+        console.debug(`Score: ${scoreBasedOnStack}`);
+        for (let i = 0; i < allWinPositionsForHuman.length; i++) {
+            if (allWinPositionsForHuman[i] == 1 << this.numberToConnect) {
+                console.info("winning move found for human");
+                return [-Infinity, emptySlotFound, true, scoreBasedOnStack];
+            }
+            else if (allWinPositionsForComputer[i] == 1 << this.numberToConnect) {
+                console.info("winning move found for computer");
+                return [Infinity, emptySlotFound, true, scoreBasedOnStack];
+            }
+            totalScoreForComputer += allWinPositionsForComputer[i];
+            totalScoreForHuman += allWinPositionsForHuman[i];
+        }
+
+        totalScore += totalScoreForComputer - totalScoreForHuman;
+        return [totalScore, emptySlotFound, winningMoveFound, scoreBasedOnStack]
     }
 
     getPossibleCols(): number[] {
         let mid = Math.floor(this.cols / 2);
-        return Array.from(Array(this.cols).keys())
-            .filter(col => this.findEmptyRow(col) != NOT_POSSIBLE)
-            .map(a => [Math.abs(a - mid), a])
-            .sort((a, b) => a[0] - b[0])
-            .map(a => a[1]);
+        // let v = Array.from(Array(this.cols).keys())
+        //     .filter(col => this.findEmptyRow(col) != NOT_POSSIBLE)
+        //     .map(a => [Math.abs(a - mid), a])
+        //     .sort((a, b) => a[0] - b[0])
+        //     .map(a => a[1]);
+        // console.debug(v);
+        return [3, 4, 2, 5, 1, 6, 0].filter(col => this.findEmptyRow(col) != NOT_POSSIBLE);
     }
 
     getPossibleRowCols() {
@@ -409,20 +343,14 @@ export class Connect4 {
      * @returns 
      */
     minimax(maximizing: boolean, depth: number, alpha: number, beta: number): number {
+        // console.debug(`Scores stack: ${this.winPositionState.scoresStack.map(i => `[human: ${i[0]}, comp: ${i[1]}]`)}, depth ${depth}`);
         // let [score, movesLeft, winningMoveFound] = this.scoreBasedOnCurrentState();
-        let [score, movesLeft, winningMoveFound] = this.scoreBasedOnWinningPositions();
-        if (winningMoveFound) {
-            if (maximizing) {
-                return Infinity;
-            } else {
-                return -Infinity;
-            }
-        }
+        let [score, movesLeft, winningMoveFound, scoreBasedOnStack] = this.scoreBasedOnWinningPositions();
         // this.printBoardToConsole();
-        // console.log(`Score for current state: ${score}, depth ${depth}`);
-        if (depth == 0 || !movesLeft) {
-            // console.log(`depth ${depth}, winningMoveFound ${winningMoveFound}, score ${score}`)
-            return score;
+        if (depth == 0 || !movesLeft || winningMoveFound) {
+            // console.debug(`depth ${ depth }, winningMoveFound ${ winningMoveFound }, score ${ score } `)
+            return scoreBasedOnStack;
+            // return score;
         }
         // sort to get the columns in the middle first.
         // this will help optimize the first move
@@ -443,7 +371,7 @@ export class Connect4 {
                     break;
                 }
             }
-            console.log(`max: bestScore ${bestScore}`);
+            // console.debug(`max: bestScore ${ bestScore } `);
             return bestScore;
         } else {
             let bestScore = Infinity;
@@ -460,7 +388,7 @@ export class Connect4 {
                     break;
                 }
             }
-            console.log(`min: bestScore ${bestScore}`);
+            // console.debug(`min: bestScore ${ bestScore } `);
             return bestScore;
         }
     }
@@ -490,7 +418,7 @@ export class Connect4 {
     }
 
     printAllMoves() {
-        console.log(JSON.stringify(this.getAllMoves()));
+        console.debug(JSON.stringify(this.getAllMoves()));
     }
 
     getAllMoves() {
@@ -511,16 +439,19 @@ export class Connect4 {
      * @param col 
      */
     makeMove(player: Player, col: number) {
+        if (player == PlayerTypes.Human)
+            debugger;
         this.publishOnMoveStart(player, col);
         const row = this.dropPiece(player, col);
         if (row === NOT_POSSIBLE) {
             throw new Error("Invalid move, row = -1");
         }
+        this.winPositionState.occupyPosition(row, col, player);
         this.moves.push([player, [row, col]]);
         let result = this.checkForWinner();
         if (result) {
             let [[one, two, three, four], p] = result;
-            console.log(`Found winning coords: ${one}, ${two}, ${three}, ${four}, player: ${playerToString(p)}`);
+            console.debug(`Found winning coords: ${one}, ${two}, ${three}, ${four}, player: ${playerToString(p)} `);
             this.gameOver = true;
             let [coords, winningPlayer] = result;
             this.winningCoords = coords;

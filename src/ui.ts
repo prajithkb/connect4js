@@ -1,6 +1,7 @@
 var $ = require('jquery');
 require('jquery-ui-bundle');
 import { Connect4, Player, playerToString, PlayerTypes } from './game'
+import * as wasm from "rust-wasm-connect4";
 
 let actionInProgress = 0;
 let timeTaken = 0;
@@ -265,7 +266,7 @@ export class UI {
      * @param row 
      */
     onMoveEnd(player: Player, col: string, row: number) {
-        debugger;
+        // debugger;
         let engine: UI = this;
         $("#gameBoard").removeClass("loading");
         $("#num_of_moves").val(engine.render());
